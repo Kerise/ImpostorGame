@@ -7,5 +7,5 @@ Dedukcyjna gra towarzyska, polegająca na znalezieniu wśród graczy "impostora"
 5. Po podaniu skojarzenia przez wszystkich graczy, rozpoczyna się głosowanie.
 6. W tej fazie należy wygłosować impostora z gry. Jeśli nie ma przewagi głosów rozpoczyna się 2 runda (wracamy do krok3).
 
-Link do apk na androida (vers 1.0): https://drive.google.com/file/d/1G-eXA7ec7sZpSa-Y5tTkK-zqs3ot8xy2/view?usp=drivesdk
+Link do apk na androida (vers 1.0): https://drive.google.com/file/d/1G-eXA7ec7sZpSa-Y5tTkK-zqs3ot8xy2/view?usp=drivesdk .
 (Link do najnowszej wersji w release)
