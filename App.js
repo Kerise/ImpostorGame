@@ -15,6 +15,11 @@ export default function App() {
   const [gamePhase, setGamePhase] = useState('menu');
   const [playerCount, setPlayerCount] = useState(2);
   const [impostorCount, setImpostorCount] = useState(1);
+  const [jesterEnable, setJesterEnable] = useState(false);
+  const [jesterPercentage, setJesterPercentage] = useState(50);
+  const [jesterShowCode, setJesterShowCode] = useState(false);
+  const [jesterPlayer, setJesterPlayer] = useState(-1);
+  const [points, setPoints] = useState([]);
   const [playerNames, setPlayerNames] = useState([]);
   const [impostorPlayer, setImpostorPlayer] = useState([]);
   const [randomPlayer, setRandomPlayer] = useState(0);
@@ -25,6 +30,10 @@ export default function App() {
   useEffect(() => {
     loadPlayerCount();
     loadImpostorCount();
+    loadJesterEnable();
+    loadJesterPercentage();
+    loadJesterShowCode();
+    loadPoints();
   }, []);
 
   const getPreviousPhase = (phase) => {
@@ -83,6 +92,80 @@ export default function App() {
     }
   };
 
+  const loadJesterEnable = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('jesterEnable');
+      if (saved !== null) {
+        setJesterEnable(saved === 'true');
+      }
+    } catch (error) {
+      console.error('Error loading jester enable:', error);
+    }
+  };
+
+  const loadJesterPercentage = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('jesterPercentage');
+      if (saved) {
+        setJesterPercentage(parseInt(saved, 10));
+      }
+    } catch (error) {
+      console.error('Error loading jester percentage:', error);
+    }
+  };
+
+  const loadJesterShowCode = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('jesterShowCode');
+      if (saved !== null) {
+        setJesterShowCode(saved === 'true');
+      }
+    } catch (error) {
+      console.error('Error loading jester show code:', error);
+    }
+  };
+
+  const loadPoints = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('points');
+      if (saved) {
+        setPoints(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Error loading points:', error);
+    }
+  };
+
+  const setupGame = () => {
+    const impostors = [];
+    const available = Array.from({ length: playerCount }, (_, i) => i);
+    for (let i = 0; i < impostorCount; i++) {
+      const randIndex = Math.floor(Math.random() * available.length);
+      impostors.push(available.splice(randIndex, 1)[0]);
+    }
+    const randomPlayer = Math.floor(Math.random() * playerCount);
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    setImpostorPlayer(impostors);
+    setSecretCode(randomNoun);
+    setRandomPlayer(randomPlayer);
+    setCurrentPlayer(0);
+    setCodeRevealed(false);
+
+    // Jester logic
+    let jester = -1;
+    if (jesterEnable) {
+      const chance = Math.floor(Math.random() * 100);
+      if (chance < jesterPercentage) {
+        // Select a non-impostor player as jester
+        const nonImpostors = available.filter(player => !impostors.includes(player));
+        if (nonImpostors.length > 0) {
+          jester = nonImpostors[Math.floor(Math.random() * nonImpostors.length)];
+        }
+      }
+    }
+    setJesterPlayer(jester);
+  };
+
   const startGame = () => {
     setGamePhase('playerCount');
   };
@@ -103,6 +186,7 @@ export default function App() {
     }
 
     setPlayerNames(Array(playerCount).fill(''));
+    setPoints(new Array(playerCount).fill(0));
     setGamePhase('playerNames');
   };
 
@@ -113,42 +197,34 @@ export default function App() {
   const backToMenu = () => {
     setGamePhase('menu');
     setImpostorPlayer([]);
+    setJesterPlayer(-1);
     setCurrentPlayer(0);
     setCodeRevealed(false);
     setSecretCode(null);
   };
 
-  const playAgain = () => {
-    setGamePhase('game');
-    const impostors = [];
-    const available = Array.from({ length: playerCount }, (_, i) => i);
-    for (let i = 0; i < impostorCount; i++) {
-      const randIndex = Math.floor(Math.random() * available.length);
-      impostors.push(available.splice(randIndex, 1)[0]);
+  const playGame = (winner) => {
+    if (winner) {
+      // Update points based on winner
+      setPoints(prevPoints => {
+        const newPoints = [...prevPoints];
+        if (winner === 'impostors') {
+          impostorPlayer.forEach(i => newPoints[i] += 2);
+        } else if (winner === 'jester') {
+          newPoints[jesterPlayer] += 2;
+        } else if (winner === 'crewmates') {
+          for (let i = 0; i < playerCount; i++) {
+            if (!impostorPlayer.includes(i) && i !== jesterPlayer) {
+              newPoints[i] += 1;
+            }
+          }
+        }
+        // Save points
+        AsyncStorage.setItem('points', JSON.stringify(newPoints)).catch(error => console.error('Error saving points:', error));
+        return newPoints;
+      });
     }
-    const randomPlayer = Math.floor(Math.random() * playerCount);
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    setCurrentPlayer(0);
-    setRandomPlayer(randomPlayer);
-    setCodeRevealed(false);
-    setImpostorPlayer(impostors);
-    setSecretCode(randomNoun);
-  };
-
-  const submitPlayerNames = () => {
-    const impostors = [];
-    const available = Array.from({ length: playerCount }, (_, i) => i);
-    for (let i = 0; i < impostorCount; i++) {
-      const randIndex = Math.floor(Math.random() * available.length);
-      impostors.push(available.splice(randIndex, 1)[0]);
-    }
-    const randomPlayer = Math.floor(Math.random() * playerCount);
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    setImpostorPlayer(impostors);
-    setSecretCode(randomNoun);
-    setRandomPlayer(randomPlayer);
-    setCurrentPlayer(0);
-    setCodeRevealed(false);
+    setupGame();
     setGamePhase('game');
   };
 
@@ -173,17 +249,17 @@ export default function App() {
 
   // Options Screen
   if (gamePhase === 'options') {
-    return <Options impostorCount={impostorCount} setImpostorCount={setImpostorCount} onBack={() => setGamePhase('menu')} />;
+    return <Options impostorCount={impostorCount} setImpostorCount={setImpostorCount} jesterEnable={jesterEnable} setJesterEnable={setJesterEnable} jesterPercentage={jesterPercentage} setJesterPercentage={setJesterPercentage} jesterShowCode={jesterShowCode} setJesterShowCode={setJesterShowCode} onBack={() => setGamePhase('menu')} />;
   }
 
   // Player Names Screen
   if (gamePhase === 'playerNames') {
-    return <PlayerNames playerNames={playerNames} setPlayerNames={setPlayerNames} onSubmit={submitPlayerNames} />;
+    return <PlayerNames playerNames={playerNames} setPlayerNames={setPlayerNames} onSubmit={playGame} />;
   }
 
   // Game Phase
   if (gamePhase === 'game') {
-    return <Game currentPlayer={currentPlayer} playerCount={playerCount} codeRevealed={codeRevealed} onShowCode={showCode} impostorPlayer={impostorPlayer} secretCode={secretCode} onNextPlayer={nextPlayer} playerNames={playerNames} />;
+    return <Game currentPlayer={currentPlayer} playerCount={playerCount} codeRevealed={codeRevealed} onShowCode={showCode} impostorPlayer={impostorPlayer} jesterPlayer={jesterPlayer} jesterShowCode={jesterShowCode} secretCode={secretCode} onNextPlayer={nextPlayer} playerNames={playerNames} />;
   }
 
   // Play Phase
@@ -193,7 +269,7 @@ export default function App() {
 
   // Results
   if (gamePhase === 'results') {
-    return <Results impostorPlayer={impostorPlayer} onBackToMenu={backToMenu} playerNames={playerNames} onPlayAgain={playAgain} />;
+    return <Results impostorPlayer={impostorPlayer} jesterPlayer={jesterPlayer} onBackToMenu={backToMenu} playerNames={playerNames} points={points} onPlayAgain={playGame} />;
   }
 
   return null;

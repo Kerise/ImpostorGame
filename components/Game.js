@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import styles from '../styles';
 
-const Game = ({ currentPlayer, playerCount, codeRevealed, onShowCode, impostorPlayer, secretCode, onNextPlayer, playerNames }) => {
+const Game = ({ currentPlayer, playerCount, codeRevealed, onShowCode, impostorPlayer, jesterPlayer, jesterShowCode, secretCode, onNextPlayer, playerNames }) => {
   return (
     <LinearGradient colors={['#2563eb', '#7c3aed']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -24,6 +24,11 @@ const Game = ({ currentPlayer, playerCount, codeRevealed, onShowCode, impostorPl
                   <>
                     <Text style={styles.impostorText}>IMPOSTOR</Text>
                     <Text style={styles.hintText}>{secretCode?.hint}</Text>
+                  </>
+                ) : jesterPlayer === currentPlayer ? (
+                  <>
+                    <Text style={styles.impostorText}>JESTER</Text>
+                    <Text style={styles.codeText}>{jesterShowCode ? secretCode?.pl : 'You are a jester!'}</Text>
                   </>
                 ) : (
                   <Text style={styles.codeText}>{secretCode?.pl}</Text>
