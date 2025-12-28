@@ -1,4 +1,4 @@
-Projekt stworzony z pomocą AI na toalecie w przed dzień świąt 2025
+Projekt stworzony z pomocą AI na toalecie w przeddzień świąt 2025
 Dedukcyjna gra towarzyska, polegająca na znalezieniu wśród graczy "impostora" oszusta.
 1. Wszyscy gracze poza jednym (który jest impostorem) dostają to samo hasło.
 2. Następnie gra losuję od kogo zaczynamy.
